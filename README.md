@@ -66,3 +66,9 @@ engine bug. Have just one player record, ideally an observer, so only that copy 
 | `tools/replaywatch.py` | Companion tool (Python 3) |
 | `tools/replaywatch.ps1`, `tools/replaywatch.bat` | The same tool for Windows (PowerShell) |
 | `keeper.txt` | Marks the folder as a mod |
+
+## Publishing your own version
+
+If you upload a modified copy to the Workshop, first clear the `WorkshopID:` line in `config.txt` (leave it blank) and change
+the title, so the upload creates a new Workshop item instead of trying to update this one. After the first upload, copy your new
+item's ID from Steam into `WorkshopID:` so later uploads update it.

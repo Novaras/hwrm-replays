@@ -1,0 +1,11 @@
+Title: HWRM Replays
+
+Tags: HomeworldRM HWRM Homeworld Remastered Multiplayer Replays
+GameType: HomeworldRM
+ModType: MOD
+BigFileName: HWRM_Replays.big
+WorkshopID:
+
+Description:
+Every game you play is saved automatically and can be watched from the game's own Load Recorded Game screen (Player vs CPU).
+Needs the -enablerecord launch option and the companion tool from https://github.com/Novaras/hwrm-replays
