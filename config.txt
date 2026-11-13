@@ -4,7 +4,7 @@ Tags: HomeworldRM HWRM Homeworld Remastered Multiplayer Replays
 GameType: HomeworldRM
 ModType: MOD
 BigFileName: HWRM_Replays.big
-WorkshopID:
+WorkshopID: 3838739464
 
 Description:
 Every game you play is saved automatically and can be watched from the game's own Load Recorded Game screen (Player vs CPU).

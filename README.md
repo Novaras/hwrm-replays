@@ -5,7 +5,8 @@ own *Load Recorded Game* screen.
 
 ## Installation
 
-1. **The mod:** subscribe to it on the Steam Workshop and enable it in the game.
+1. **The mod:** subscribe to it on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3838739464) and
+   enable it in the game.
 2. **Recording:** in Steam, Homeworld Remastered → Properties → Launch Options, add `-enablerecord`. The game then records every
    game you play.
 3. **The companion tool:** download `hwrm-replays-tools` (a zip) from the latest
@@ -83,5 +84,5 @@ engine bug. Have just one player record, ideally an observer, so only that copy 
 ## Publishing your own version
 
 If you upload a modified copy to the Workshop, first clear the `WorkshopID:` line in `config.txt` (leave it blank) and change
-the title, so the upload creates a new Workshop item instead of trying to update this one. After the first upload, copy your new
-item's ID from Steam into `WorkshopID:` so later uploads update it.
+the title, so the upload creates a new Workshop item instead of trying to update this one. The upload writes your new item's ID
+into the uploaded folder's `config.txt`; keep it there (and in your own copy) so later uploads update that item.
