@@ -45,6 +45,18 @@ No extra packages needed. Leave it running while you play, or run it after playi
 It finds the game through Steam. If it can't, pass the game's `Bin\Profiles` folder: `-Profiles "<folder>"` (Windows) or
 `--profiles <folder>` (Python). Both versions also take `-Dry` / `--dry` to only report what they would change.
 
+### Starting it with the game
+
+Instead of running the tool yourself, Steam can start it with the game: it then converts replays while you play and closes
+after the game exits. Put the tool's full path in the launch options (Steam → Homeworld Remastered → Properties) like this:
+
+| Platform | Launch options |
+| --- | --- |
+| Windows | `"C:\path\to\tools\replaywatch.bat" --run %command% -enablerecord` |
+| Linux (Proton) | `python3 /path/to/tools/replaywatch.py --run %command% -enablerecord` |
+
+`%command%` is Steam's placeholder for the game itself; the game always starts, even if the tool can't find its folders.
+
 What it does:
 
 - turns each game's snapshot into a named, playable recording: `<date> <time> P<slot>.rec`;

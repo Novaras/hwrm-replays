@@ -5,16 +5,19 @@ See replaywatch.py's header for what it does and why. Both versions share the sa
 and their functions match one for one.
 
 Usage: replaywatch.bat [-Profiles "<the game's Bin\Profiles folder>"] [-Watch <seconds>] [-Dry]
+       replaywatch.bat --run <game command...>   (Steam launch options: "<path>\replaywatch.bat" --run %command% -enablerecord)
   -Profiles: found through Steam's library list (or the HWRM_PROFILES variable) when not given.
   -Watch: keep running and check every <seconds> (replaywatch.bat with no arguments uses -Watch 5). Without it: one pass.
   -Dry: only report what would change.
+  -WhileGameRuns: (used by replaywatch.bat --run) check every few seconds while HomeworldRM.exe runs, once more after it exits,
+    then stop. Gives up if the game hasn't started within 3 minutes.
 
 PowerShell notes for anyone editing this: write null tests as `$null -eq $x` (`$x -eq $null` filters arrays instead of testing
 them), return byte arrays as `return ,$bytes` (otherwise they're unrolled into separate values), and write numbers of 0x80000000
 and above in decimal (0x80000000 is a negative int32 in PowerShell). Variable names ignore case, so a local like $slot would
 overwrite the constant $SLOT: give locals distinct names.
 #>
-param([string]$Profiles, [int]$Watch = 0, [switch]$Dry)
+param([string]$Profiles, [int]$Watch = 0, [switch]$Dry, [switch]$WhileGameRuns)
 
 $ErrorActionPreference = 'Stop'
 
@@ -408,18 +411,54 @@ function Find-Profiles {
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 
+# One pass over every profile.
+function Invoke-AllProfiles {
+    foreach ($p in (Get-ChildItem -LiteralPath $Profiles -Directory | Where-Object { $_.Name -like 'profile*' } | Sort-Object Name)) {
+        $pb = Join-Path $p.FullName 'playback'
+        if (Test-Path -LiteralPath $pb) { Invoke-Profile $pb }
+    }
+}
+
+# Invoke-AllProfiles, reporting errors instead of stopping (the watch loops keep going: a file may be mid-write).
+function Invoke-SafePass {
+    try { Invoke-AllProfiles } catch { Write-Host "error: $_ (will retry)" }
+}
+
+function Test-GameRunning {
+    [bool](Get-Process -Name 'HomeworldRM' -ErrorAction SilentlyContinue)
+}
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+
 if (-not $Profiles) { $Profiles = Find-Profiles }
 if (-not $Profiles -or -not (Test-Path -LiteralPath $Profiles)) {
     Write-Host "Homeworld Remastered's Bin\Profiles folder not found: pass it with -Profiles `"<folder>`""
     exit 1
 }
-Write-Host ("profiles: $Profiles" + $(if ($Watch -gt 0) { " (checking every $Watch s; close this window to stop)" } else { '' }))
 
-while ($true) {
-    foreach ($p in (Get-ChildItem -LiteralPath $Profiles -Directory | Where-Object { $_.Name -like 'profile*' } | Sort-Object Name)) {
-        $pb = Join-Path $p.FullName 'playback'
-        if (Test-Path -LiteralPath $pb) { Invoke-Profile $pb }
+if ($WhileGameRuns) {
+    $interval = if ($Watch -gt 0) { $Watch } else { 5 }
+    Write-Host "profiles: $Profiles (checking every $interval s while the game runs)"
+    $deadline = (Get-Date).AddMinutes(3)
+    while (-not (Test-GameRunning)) {                       # wait for the game to start
+        if ((Get-Date) -gt $deadline) { Write-Host 'the game did not start'; exit 1 }
+        Start-Sleep -Seconds 2
     }
-    if ($Watch -le 0) { break }
+    while (Test-GameRunning) {
+        Invoke-SafePass
+        Start-Sleep -Seconds $interval
+    }
+    Invoke-SafePass
+    exit 0
+}
+
+Write-Host ("profiles: $Profiles" + $(if ($Watch -gt 0) { " (checking every $Watch s; close this window to stop)" } else { '' }))
+if ($Watch -le 0) {
+    Invoke-AllProfiles
+    exit 0
+}
+while ($true) {
+    Invoke-SafePass
     Start-Sleep -Seconds $Watch
 }

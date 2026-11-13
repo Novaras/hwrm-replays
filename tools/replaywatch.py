@@ -21,11 +21,14 @@ The repairs (why the game can't play its own recordings in a later session):
   - a save-style name trailer is added (the list only shows files with one, and plays '<name>.rec'), with the header's body size
     set to 'unknown' (-1) so the loader accepts the extra bytes (playback stops at the recorded end frame).
 
-Usage: replaywatch.py [--profiles <Bin/Profiles folder>] [--watch [seconds]] [--dry]
+Usage: replaywatch.py [--profiles <Bin/Profiles folder>] [--watch [seconds]] [--dry] [--run <game command...>]
   --profiles: the game's Bin/Profiles folder. By default it's found through Steam's library list (Windows and Linux), or the
               HWRM_PROFILES environment variable.
   --watch: keep running and check every few seconds (default 5) - leave it running while you play.
   --dry: only report what would change.
+  --run: start the game with the rest of the command line, check every few seconds while it runs, then once more after it exits.
+         For Steam's launch options: `python3 /path/to/replaywatch.py --run %command% -enablerecord` (the game always starts,
+         even if this tool fails).
 Windows without Python: tools/replaywatch.bat (the same tool in PowerShell).
 """
 import hashlib
@@ -400,8 +403,57 @@ def find_profiles():
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 
+def process_all(root, dry):
+    """One pass over every profile."""
+    for p in sorted(os.listdir(root)):
+        pb = os.path.join(root, p, 'playback')
+        if p.lower().startswith('profile') and os.path.isdir(pb):
+            process_profile(pb, dry)
+
+
+def safe_pass(root, dry):
+    """process_all(), reporting errors instead of stopping (the watch and run loops keep going: a file may be mid-write)."""
+    try:
+        process_all(root, dry)
+    except Exception as e:                                  # noqa: BLE001 - keep watching whatever happens
+        print(f'error: {e!r} (will retry)')
+
+
+def game_running():
+    """True while the game's process exists (Windows only: under Proton, Steam's command already waits for the game)."""
+    if os.name != 'nt':
+        return False
+    import subprocess
+    out = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq HomeworldRM.exe', '/NH'], capture_output=True, text=True).stdout
+    return 'homeworldrm.exe' in out.lower()
+
+
+def run_game(command, root, dry, interval):
+    """Starts the game, checks for replays every interval seconds while it runs, then once more. Returns the game's exit code.
+    The game is started first, so a problem here (e.g. no profiles folder) never stops it."""
+    import subprocess
+    game = subprocess.Popen(command)
+    if not root or not os.path.isdir(root):
+        print('Homeworld Remastered\'s Bin/Profiles folder not found: replays won\'t be converted (use --profiles)')
+        return game.wait()
+    print(f'profiles: {root} (game running; checking every {interval} s)')
+    while game.poll() is None or game_running():           # (a launcher can exit before the game does)
+        safe_pass(root, dry)
+        time.sleep(interval)
+    safe_pass(root, dry)
+    return game.returncode
+
+
 def main():
     args = sys.argv[1:]
+
+    command = None
+    if '--run' in args:                                     # everything after --run is the game's command
+        i = args.index('--run')
+        command = args[i + 1:]
+        del args[i:]
+        if not command:
+            sys.exit('--run needs the game command after it (in Steam: --run %command%)')
 
     root = None
     if '--profiles' in args:
@@ -409,10 +461,17 @@ def main():
         root = args[i + 1]
         del args[i:i + 2]
     root = root or find_profiles()
+    dry = '--dry' in args
+    if command:
+        interval = 5
+        if '--watch' in args:
+            i = args.index('--watch')
+            if i + 1 < len(args) and args[i + 1].isdigit():
+                interval = int(args[i + 1])
+        sys.exit(run_game(command, root, dry, interval))
     if not root:
         sys.exit('Homeworld Remastered\'s Bin/Profiles folder not found: pass it with --profiles')
 
-    dry = '--dry' in args
     interval = None
     if '--watch' in args:
         i = args.index('--watch')
@@ -424,13 +483,11 @@ def main():
         sys.exit(f'no profiles folder at {root} (use --profiles)')
     print(f'profiles: {root}' + (f' (checking every {interval} s; Ctrl+C to stop)' if interval else ''))
 
+    if interval is None:
+        process_all(root, dry)
+        return
     while True:
-        for p in sorted(os.listdir(root)):
-            pb = os.path.join(root, p, 'playback')
-            if p.lower().startswith('profile') and os.path.isdir(pb):
-                process_profile(pb, dry)
-        if interval is None:
-            break
+        safe_pass(root, dry)
         time.sleep(interval)
 
 
