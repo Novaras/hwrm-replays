@@ -8,9 +8,10 @@ own *Load Recorded Game* screen.
 1. **The mod:** subscribe to it on the Steam Workshop and enable it in the game.
 2. **Recording:** in Steam, Homeworld Remastered → Properties → Launch Options, add `-enablerecord`. The game then records every
    game you play.
-3. **The companion tool:** download it from this repository's `tools` folder (it isn't part of the Workshop download) and run it
-   (see [Companion tool](#companion-tool)). On Windows keep `replaywatch.bat` and `replaywatch.ps1` together; with Python,
-   `replaywatch.py` is all you need.
+3. **The companion tool:** download `hwrm-replays-tools` (a zip) from the latest
+   [release](https://github.com/Novaras/hwrm-replays/releases/latest) (it isn't part of the Workshop download), unzip it anywhere
+   and run it (see [Companion tool](#companion-tool)). On Windows keep `replaywatch.bat` and `replaywatch.ps1` together; with
+   Python, `replaywatch.py` is all you need.
 
 ### Without the Workshop
 
